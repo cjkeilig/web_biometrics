@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
@@ -68,6 +71,9 @@ namespace WebApplication5.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Login(LoginViewModel model, string returnUrl)
         {
+            Console.WriteLine(model.Email);
+            Console.WriteLine(model.TypingPattern);
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -76,6 +82,9 @@ namespace WebApplication5.Controllers
             // This doesn't count login failures towards account lockout
             // To enable password failures to trigger account lockout, change to shouldLockout: true
             var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
+
+            string typingResult = await verify_user(model.Email, model.TypingPattern);
+            Console.WriteLine(typingResult);
             switch (result)
             {
                 case SignInStatus.Success:
@@ -156,12 +165,19 @@ namespace WebApplication5.Controllers
                 if (result.Succeeded)
                 {
                     await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
-                    
+
                     // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
                     // Send an email with this link
                     // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
                     // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
                     // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
+
+                    string response = await save_typing_pattern(model.Email, model.TypingPattern);
+                    //string response = await check_user(model.Email);
+                    Console.WriteLine(response);
+
+
+
 
                     return RedirectToAction("Index", "Home");
                 }
@@ -480,6 +496,97 @@ namespace WebApplication5.Controllers
                 context.HttpContext.GetOwinContext().Authentication.Challenge(properties, LoginProvider);
             }
         }
+
+        private static string apiKey = "b6d601365d7de7f9ca4ffac21494b7fc"; // don't check this in
+        private static string apiSecret = "81c8b629a8a113519b9cb36558c50ebd"; // don't check this in
+        //private static string id = "{id}";
+        //private static string tp = "{tp}";
+        private static string base_url = "https://api.typingdna.com/{0}/{1}";
+        private static string contentType = "application/x-www-form-urlencoded";
+
+        static async Task<string> check_user(string id)
+        {
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", apiKey, apiSecret)));
+            var baseAddress = new Uri(base_url);
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authstring);
+                    using (var response = await httpClient.GetAsync(string.Format(base_url, "user", id)))
+                    {
+                        string responseData = await response.Content.ReadAsStringAsync();
+                        return responseData;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                return null;
+            }
+        }
+
+        static async Task<string> save_typing_pattern(string id, string tp)
+        {
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", apiKey, apiSecret)));
+            var baseAddress = new Uri(base_url);
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authstring);
+                    var data = new FormUrlEncodedContent(new[]
+                        {
+                            new System.Collections.Generic.KeyValuePair<string, string>("tp", tp)
+                        }
+                    );
+                    using (var response = await httpClient.PostAsync(string.Format(base_url, "save", id), data))
+                    {
+                        string responseData = await response.Content.ReadAsStringAsync();
+                        return responseData;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                return null;
+            }
+        }
+
+        static async Task<string> verify_user(string id, string tp)
+        {
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", apiKey, apiSecret)));
+            var baseAddress = new Uri(base_url);
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authstring);
+                    var data = new FormUrlEncodedContent(new[]
+                        {
+                            new System.Collections.Generic.KeyValuePair<string, string>("tp", tp)
+                            //new System.Collections.Generic.KeyValuePair<string, string>("quality", "2")
+                        }
+                    );
+                    using (var response = await httpClient.PostAsync(string.Format(base_url, "verify", id), data))
+                    {
+                        string responseData = await response.Content.ReadAsStringAsync();
+                        return responseData;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                return null;
+            }
+        }
+
         #endregion
     }
 }

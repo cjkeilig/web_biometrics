@@ -60,6 +60,10 @@ namespace WebApplication5.Models
 
         [Display(Name = "Remember me?")]
         public bool RememberMe { get; set; }
+
+        [Required]
+        [Display(Name = "Typing Pattern")]
+        public string TypingPattern { get; set; }
     }
 
     public class RegisterViewModel
@@ -79,6 +83,11 @@ namespace WebApplication5.Models
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
+
+        [Required]
+        [Display(Name = "Typing Pattern")]
+        public string TypingPattern { get; set; }
+
     }
 
     public class ResetPasswordViewModel

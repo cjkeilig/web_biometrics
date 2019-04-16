@@ -8,7 +8,7 @@
 <div class="row">
     <div class="col-md-8">
         <section id="loginForm">
-            @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+            @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "form-horizontal", role = "form", @id = "form1" }))
             {
                 @Html.AntiForgeryToken()
                 <h4>Use a local account to log in.</h4>
@@ -37,6 +37,11 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <div class="col-md-10">
+                        @Html.TextBoxFor(m => m.TypingPattern, new { @class = "form-control", @type = "hidden" })
+                    </div>
+                </div>
+                <div class="form-group">
                     <div class="col-md-offset-2 col-md-10">
                         <input type="submit" value="Log in" class="btn btn-default" />
                     </div>
@@ -45,9 +50,9 @@
                     @Html.ActionLink("Register as a new user", "Register")
                 </p>
                 @* Enable this once you have account confirmation enabled for password reset functionality
-                    <p>
-                        @Html.ActionLink("Forgot your password?", "ForgotPassword")
-                    </p>*@
+            <p>
+                @Html.ActionLink("Forgot your password?", "ForgotPassword")
+            </p>*@
             }
         </section>
     </div>
@@ -61,3 +66,20 @@
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
 }
+
+
+<script src="https://typingdna.com/scripts/typingdna.js"></script>
+<script type="text/javascript">
+    var tdna = new TypingDNA();
+    tdna.addTarget('Email');
+
+    window.onload = (event) => {
+        $('#form1').submit(function(event) {
+            setPattern();
+        });
+    };
+    function setPattern() {
+        console.log(TypingDNA.getTypingPattern({ type: 1, targetId: "Email" }));
+        $('#TypingPattern').val(TypingDNA.getTypingPattern({ type: 1, targetId: "Email" }));
+    }
+</script>
