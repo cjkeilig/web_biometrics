@@ -14,7 +14,7 @@
     <div class="form-group">
         @Html.LabelFor(m => m.Email, new { @class = "col-md-2 control-label" })
         <div class="col-md-10">
-            @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+            @Html.TextBoxFor(m => m.Email, new { @class = "form-control", @ksdna="" })
         </div>
     </div>
     <div class="form-group">
@@ -45,7 +45,10 @@
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
 }
-
+    <script>
+        var KSDNA_SDK_URL = "https://api.keystrokedna.com/static/v0.4.1/ksdna.js?apiKey=16614e08-7e7f-4d3e-8dd5-adeebb966bd2";
+!function(a,b,c,d){a.KSDNA=a.KSDNA||{f:[],ready:function(b){a.KSDNA.loaded?b():this.f.push(b)}};var  e=b.createElement(c),f=b.getElementsByTagName(c)[0];e.ksdna=1,e.async=1,e.src=d,f.parentNode.insertBefore(e,f)}(window,document,"script",KSDNA_SDK_URL);
+    </script>
 
 <script src="https://typingdna.com/scripts/typingdna.js"></script>
 <script type="text/javascript">
@@ -53,12 +56,70 @@
     tdna.addTarget('Email');
 
     window.onload = (event) => {
-        $('#form1').submit(function(event) {
-            setPattern();
+        $('#form1').submit(function (event) {
+            onSubmit(event);
+            //setPattern();
         });
+
+
     };
     function setPattern() {
         console.log(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
         $('#TypingPattern').val(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
     }
+
+    window.KSDNA.ready(function () { window.KSDNA.init(); });
+
+
+    function onSubmit(event) {
+        event.preventDefault();
+        var form = event.target;
+        var emailInput = $('#Email')[0];
+
+        var ksdnaSignatureForEmail = KSDNA.prepareSignature('email', emailInput.ksdna._dataset);
+        console.log(ksdnaSignatureForEmail);
+        getKSDNAScoreForEmail(emailInput.value, ksdnaSignatureForEmail)
+            .then(function (result) { })
+            .catch(function (error) { });
+    }
+
+
+    function getKSDNAScoreForEmail(email, emailSignature) {
+        return getKsdnaApiAccessToken()
+            .then((response) => {
+                const accessToken = response['access_token'];
+                return $.ajax({
+                    method: 'post',
+                    url: `https://api.keystrokedna.com/trusted/identify`,
+                    data: {
+                        grant_type: 'ksdna',
+                        username: email,
+                        value: email,
+                        signature: emailSignature,
+                        user_agent: navigator.userAgent
+                    },
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Bearer ' + accessToken,
+                    }
+                });
+            });
+    };
+
+    function getKsdnaApiAccessToken() {
+        return $.ajax({
+            type: 'post',
+            url: "https://api.keystrokedna.com/oauth/token",
+            username: '16614e08-7e7f-4d3e-8dd5-adeebb966bd2',
+            password: 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data: 'grant_type=client_credentials'
+        });
+    };
+
+
+
+
 </script>
