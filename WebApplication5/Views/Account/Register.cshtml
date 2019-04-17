@@ -31,7 +31,10 @@
     </div>
     <div class="form-group">
         <div class="col-md-10">
-            @Html.TextBoxFor(m => m.TypingPattern, new { @class = "form-control", @type = "hidden" })
+            @Html.TextBoxFor(m => m.TypingDnaPattern, new { @class = "form-control", @type = "hidden" })
+        </div>
+        <div class="col-md-10">
+            @Html.TextBoxFor(m => m.KeystrokeDnaSignature, new { @class = "form-control", @type = "hidden" })
         </div>
     </div>
     <div class="form-group">
@@ -63,89 +66,18 @@
 
 
     };
+
     function setPattern() {
         console.log(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
-        $('#TypingPattern').val(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
+        $('#TypingDnaPattern').val(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
+
+        var emailInput = $('#Email')[0];
+        var ksdnaSignatureForEmail = KSDNA.prepareSignature('email', emailInput.ksdna._dataset);
+        console.log(ksdnaSignatureForEmail)
+        $('#KeystrokeDnaSignature').val(ksdnaSignatureForEmail);
+
     }
 
     window.KSDNA.ready(function () { window.KSDNA.init(); });
-
-
-    function onSubmit(event) {
-        event.preventDefault();
-        var form = event.target;
-        var emailInput = $('#Email')[0];
-
-        var ksdnaSignatureForEmail = KSDNA.prepareSignature('email', emailInput.ksdna._dataset);
-        console.log(ksdnaSignatureForEmail);
-        getKSDNAScoreForEmail(emailInput.value, ksdnaSignatureForEmail)
-            .then(function (result) { })
-            .catch(function (error) { });
-    }
-
-
-    function getKSDNAScoreForEmail(email, emailSignature) {
-        return getKsdnaApiAccessToken()
-            .then((response) => {
-                const accessToken = response['access_token'];
-                return $.ajax({
-                    method: 'post',
-                    url: `https://api.keystrokedna.com/trusted/identify`,
-                    data: {
-                        grant_type: 'ksdna',
-                        username: email,
-                        value: email,
-                        signature: emailSignature,
-                        user_agent: navigator.userAgent
-                    },
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Authorization': 'Bearer ' + accessToken,
-                    }
-                });
-            });
-    };
-
-    function getKsdnaApiAccessToken() {
-
-        // using XMLHttpRequest
-        //var xhr = new XMLHttpRequest();
-        //xhr.open("POST", "https://api.keystrokedna.com/oauth/token", false);
-        //xhr.withCredentials = true;
-        //xhr.setRequestHeader("Content-Type", 'application/x-www-form-urlencoded');
-        //xhr.setRequestHeader('Authorization', 'Basic ' + btoa('16614e08-7e7f-4d3e-8dd5-adeebb966bd2' + ":" + 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'));
-        //xhr.onload = function () {
-        //    console.log(xhr.responseText);
-        //};
-        //xhr.send('grant_type=client_credentials');
-
-        //return $.ajax({
-        //    type: 'post',
-        //    url: "https://api.keystrokedna.com/oauth/token",
-        //    //username: '16614e08-7e7f-4d3e-8dd5-adeebb966bd2',
-        //    //password: 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur',
-        //    headers: {
-
-        //        'Content-Type': 'application/x-www-form-urlencoded',
-        //        'Authorization': 'Basic ' + btoa('16614e08-7e7f-4d3e-8dd5-adeebb966bd2' + ":" + 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur')
-        //        //"password": 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'
-        //        //'cache-control': 'no-cache'
-        //    },
-        //    xhrFields: {
-        //        withCredentials: true
-        //    },
-        //    //beforeSend: function (xhr) {
-        //    //    xhr.setRequestHeader('Authorization', 'Basic ' + btoa('16614e08-7e7f-4d3e-8dd5-adeebb966bd2' + ":" + 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'));
-
-        //    //},
-        //    data: 'grant_type=client_credentials'
-        //        //& client_id=16614e08-7e7f-4d3e-8dd5-adeebb966bd2 & client_secret=YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'
-        //});
-
-
-    };
-
-
-
 
 </script>

@@ -17,7 +17,7 @@
                 <div class="form-group">
                     @Html.LabelFor(m => m.Email, new { @class = "col-md-2 control-label" })
                     <div class="col-md-10">
-                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", @ksdna="" })
                         @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
                     </div>
                 </div>
@@ -38,7 +38,10 @@
                 </div>
                 <div class="form-group">
                     <div class="col-md-10">
-                        @Html.TextBoxFor(m => m.TypingPattern, new { @class = "form-control", @type = "hidden" })
+                        @Html.TextBoxFor(m => m.TypingDnaPattern, new { @class = "form-control", @type = "hidden" })
+                    </div>
+                    <div class="col-md-10">
+                        @Html.TextBoxFor(m => m.KeystrokeDnaSignature, new { @class = "form-control", @type = "hidden" })
                     </div>
                 </div>
                 <div class="form-group">
@@ -50,9 +53,9 @@
                     @Html.ActionLink("Register as a new user", "Register")
                 </p>
                 @* Enable this once you have account confirmation enabled for password reset functionality
-            <p>
-                @Html.ActionLink("Forgot your password?", "ForgotPassword")
-            </p>*@
+                    <p>
+                        @Html.ActionLink("Forgot your password?", "ForgotPassword")
+                    </p>*@
             }
         </section>
     </div>
@@ -67,19 +70,33 @@
     @Scripts.Render("~/bundles/jqueryval")
 }
 
-
+<script>
+    var KSDNA_SDK_URL = "https://api.keystrokedna.com/static/v0.4.1/ksdna.js?apiKey=16614e08-7e7f-4d3e-8dd5-adeebb966bd2";
+    !function (a, b, c, d) { a.KSDNA = a.KSDNA || { f: [], ready: function (b) { a.KSDNA.loaded ? b() : this.f.push(b) } }; var e = b.createElement(c), f = b.getElementsByTagName(c)[0]; e.ksdna = 1, e.async = 1, e.src = d, f.parentNode.insertBefore(e, f) }(window, document, "script", KSDNA_SDK_URL);
+</script>
 <script src="https://typingdna.com/scripts/typingdna.js"></script>
 <script type="text/javascript">
     var tdna = new TypingDNA();
     tdna.addTarget('Email');
 
     window.onload = (event) => {
-        $('#form1').submit(function(event) {
+        $('#form1').submit(function (event) {
             setPattern();
         });
     };
+
     function setPattern() {
-        console.log(TypingDNA.getTypingPattern({ type: 1, targetId: "Email" }));
-        $('#TypingPattern').val(TypingDNA.getTypingPattern({ type: 1, targetId: "Email" }));
+        console.log(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
+        $('#TypingDnaPattern').val(TypingDNA.getTypingPattern({ type: 1, targetId: "Email", extended: true }));
+
+        var emailInput = $('#Email')[0];
+        console.log(emailInput);
+        var ksdnaSignatureForEmail = KSDNA.prepareSignature('email', emailInput.ksdna._dataset);
+        console.log(ksdnaSignatureForEmail)
+        $('#KeystrokeDnaSignature').val(ksdnaSignatureForEmail);
+
     }
+
+    window.KSDNA.ready(function () { window.KSDNA.init(); });
+
 </script>

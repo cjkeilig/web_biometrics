@@ -62,8 +62,12 @@ namespace WebApplication5.Models
         public bool RememberMe { get; set; }
 
         [Required]
-        [Display(Name = "Typing Pattern")]
-        public string TypingPattern { get; set; }
+        [Display(Name = "Typing DNA Pattern")]
+        public string TypingDnaPattern { get; set; }
+
+        [Required]
+        [Display(Name = "Keystroke DNA Pattern")]
+        public string KeystrokeDnaSignature { get; set; }
     }
 
     public class RegisterViewModel
@@ -85,8 +89,12 @@ namespace WebApplication5.Models
         public string ConfirmPassword { get; set; }
 
         [Required]
-        [Display(Name = "Typing Pattern")]
-        public string TypingPattern { get; set; }
+        [Display(Name = "Typing DNA Pattern")]
+        public string TypingDnaPattern { get; set; }
+
+        [Required]
+        [Display(Name = "Keystroke DNA Pattern")]
+        public string KeystrokeDnaSignature { get; set; }
 
     }
 

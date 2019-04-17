@@ -9,9 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.Routing;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
+using Newtonsoft.Json.Linq;
 using WebApplication5.Models;
 
 namespace WebApplication5.Controllers
@@ -73,7 +75,9 @@ namespace WebApplication5.Controllers
         public async Task<ActionResult> Login(LoginViewModel model, string returnUrl)
         {
             Console.WriteLine(model.Email);
-            Console.WriteLine(model.TypingPattern);
+            Console.WriteLine(model.TypingDnaPattern);
+
+            Console.WriteLine(model.KeystrokeDnaSignature);
 
             if (!ModelState.IsValid)
             {
@@ -84,12 +88,24 @@ namespace WebApplication5.Controllers
             // To enable password failures to trigger account lockout, change to shouldLockout: true
             var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
 
-            string typingResult = await verify_user(model.Email, model.TypingPattern);
-            Console.WriteLine(typingResult);
+            if (keystrokeDnaAccessToken == string.Empty || keystrokeDnaAccessToken == null)
+                keystrokeDnaAccessToken = await get_keystroke_token();
+
+            string typingDnaResult = await typingdna_verify_user(model.Email, model.TypingDnaPattern);
+            Console.WriteLine(typingDnaResult);
+
+            JObject o = JObject.Parse(typingDnaResult);
+            decimal score = decimal.Parse((string)o.SelectToken("score"));
+            string confidence_interval = (string)o.SelectToken("confidence_interval");
+
+
+            string keystrokeDnaResult = await save_or_verify_keystroke_typing_pattern(model.Email, model.KeystrokeDnaSignature, Request.UserAgent);
+            Console.WriteLine(keystrokeDnaResult);
+
             switch (result)
             {
                 case SignInStatus.Success:
-                    return RedirectToLocal(returnUrl);
+                    return RedirectToLocalWithParams(returnUrl, score.ToString(), confidence_interval );
                 case SignInStatus.LockedOut:
                     return View("Lockout");
                 case SignInStatus.RequiresVerification:
@@ -176,15 +192,17 @@ namespace WebApplication5.Controllers
                     //string response = await save_typing_pattern(model.Email, model.TypingPattern);
 
                     if (keystrokeDnaAccessToken == string.Empty || keystrokeDnaAccessToken == null)
-                        keystrokeDnaAccessToken = await get_keystroken_token();
+                        keystrokeDnaAccessToken = await get_keystroke_token();
 
                     //string response = await check_user(model.Email);
                     Console.WriteLine(keystrokeDnaAccessToken);
 
-                    var response = await save_keystroke_typing_pattern(model.Email, model.TypingPattern, Request.UserAgent);
-                    Console.WriteLine(response);
+                    var keystrokeResponse = await save_or_verify_keystroke_typing_pattern(model.Email, model.KeystrokeDnaSignature, Request.UserAgent);
+                    Console.WriteLine(keystrokeResponse);
 
-
+                    //var typingDnaResponse = await typingdna_checkuser(model.Email);\
+                    var typingDnaResponse = await typingdna_save_pattern(model.Email, model.TypingDnaPattern);
+                    Console.WriteLine(typingDnaResponse);
 
                     return RedirectToAction("Index", "Home");
                 }
@@ -195,28 +213,8 @@ namespace WebApplication5.Controllers
             return View(model);
         }
 
-        private async Task<string> save_keystroke_typing_pattern(string email, string typingPattern, string userAgent)
+        private async Task<string> save_or_verify_keystroke_typing_pattern(string email, string emailSignature, string userAgent)
         {
-            //const accessToken = response['access_token'];
-            //const  params  = {
-            //method: 'post',
-            //    url:  `https://api.keystrokedna.com/trusted/identify`,
-            //data:
-            //    {
-            //    grant_type: 'ksdna',
-            //        username: requestParams.email,
-            //        value: requestParams.email,
-            //        signature: requestParams.myKSDNAData.emailSignature,
-            //        user_agent: requestParams.getClientUserAgent()
-            //    },
-            //    headers:
-            //    {
-            //        'Content-Type':  'application/x-www-form-urlencoded',
-            //        'Authorization':  'Bearer ' + accessToken,
-            //    }
-            //};
-
-            //string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", keystrokeDnaApiKey, keystrokeDnaApiSecret)));
             var baseAddress = new Uri(keyStrokeDnaBaseUrl);
             try
             {
@@ -228,6 +226,7 @@ namespace WebApplication5.Controllers
                     values.Add(new KeyValuePair<string, string>("grant_type", "ksdna"));
                     values.Add(new KeyValuePair<string, string>("username", email));
                     values.Add(new KeyValuePair<string, string>("value", email));
+                    values.Add(new KeyValuePair<string, string>("signature", emailSignature));
                     values.Add(new KeyValuePair<string, string>("user_agent", userAgent));
 
                     //values.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
@@ -519,6 +518,16 @@ namespace WebApplication5.Controllers
             }
         }
 
+        private ActionResult RedirectToLocalWithParams(string returnUrl, string score, string confidence_interval)
+        {
+            if (Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+            //return RedirectToAction("Index", "Home", routeValues);
+            return Redirect("/Home?Score" + score + "&Confidence_interval=" +confidence_interval);
+        }
+
         private ActionResult RedirectToLocal(string returnUrl)
         {
             if (Url.IsLocalUrl(returnUrl))
@@ -569,9 +578,9 @@ namespace WebApplication5.Controllers
 
         private static string contentType = "application/x-www-form-urlencoded";
 
-        static async Task<string> check_user(string id)
+        static async Task<string> typingdna_checkuser(string id)
         {
-            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiKey)));
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiSecret)));
             var baseAddress = new Uri(typingDnaBaseUrl);
             try
             {
@@ -593,7 +602,7 @@ namespace WebApplication5.Controllers
             }
         }
 
-        static async Task<string> get_keystroken_token()
+        static async Task<string> get_keystroke_token()
         {
             string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", keystrokeDnaApiKey, keystrokeDnaApiSecret)));
             var baseAddress = new Uri(keyStrokeDnaBaseUrl);
@@ -611,7 +620,9 @@ namespace WebApplication5.Controllers
                     {
                         var test = response.Content;
                         string responseData = await response.Content.ReadAsStringAsync();
-                        return responseData;
+                        JObject o = JObject.Parse(responseData);
+                        string token = (string)o.SelectToken("access_token");
+                        return token;
                     }
                 }
             }
@@ -622,9 +633,9 @@ namespace WebApplication5.Controllers
             }
         }
 
-        static async Task<string> save_typing_pattern(string id, string tp)
+        static async Task<string> typingdna_save_pattern(string id, string tp)
         {
-            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiKey)));
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiSecret)));
             var baseAddress = new Uri(typingDnaBaseUrl);
             try
             {
@@ -651,9 +662,9 @@ namespace WebApplication5.Controllers
             }
         }
 
-        static async Task<string> verify_user(string id, string tp)
+        static async Task<string> typingdna_verify_user(string id, string tp)
         {
-            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiKey)));
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiSecret)));
             var baseAddress = new Uri(typingDnaBaseUrl);
             try
             {
