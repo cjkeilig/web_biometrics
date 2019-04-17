@@ -57,8 +57,8 @@
 
     window.onload = (event) => {
         $('#form1').submit(function (event) {
-            onSubmit(event);
-            //setPattern();
+            //onSubmit(event);
+            setPattern();
         });
 
 
@@ -107,16 +107,42 @@
     };
 
     function getKsdnaApiAccessToken() {
-        return $.ajax({
-            type: 'post',
-            url: "https://api.keystrokedna.com/oauth/token",
-            username: '16614e08-7e7f-4d3e-8dd5-adeebb966bd2',
-            password: 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            data: 'grant_type=client_credentials'
-        });
+
+        // using XMLHttpRequest
+        //var xhr = new XMLHttpRequest();
+        //xhr.open("POST", "https://api.keystrokedna.com/oauth/token", false);
+        //xhr.withCredentials = true;
+        //xhr.setRequestHeader("Content-Type", 'application/x-www-form-urlencoded');
+        //xhr.setRequestHeader('Authorization', 'Basic ' + btoa('16614e08-7e7f-4d3e-8dd5-adeebb966bd2' + ":" + 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'));
+        //xhr.onload = function () {
+        //    console.log(xhr.responseText);
+        //};
+        //xhr.send('grant_type=client_credentials');
+
+        //return $.ajax({
+        //    type: 'post',
+        //    url: "https://api.keystrokedna.com/oauth/token",
+        //    //username: '16614e08-7e7f-4d3e-8dd5-adeebb966bd2',
+        //    //password: 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur',
+        //    headers: {
+
+        //        'Content-Type': 'application/x-www-form-urlencoded',
+        //        'Authorization': 'Basic ' + btoa('16614e08-7e7f-4d3e-8dd5-adeebb966bd2' + ":" + 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur')
+        //        //"password": 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'
+        //        //'cache-control': 'no-cache'
+        //    },
+        //    xhrFields: {
+        //        withCredentials: true
+        //    },
+        //    //beforeSend: function (xhr) {
+        //    //    xhr.setRequestHeader('Authorization', 'Basic ' + btoa('16614e08-7e7f-4d3e-8dd5-adeebb966bd2' + ":" + 'YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'));
+
+        //    //},
+        //    data: 'grant_type=client_credentials'
+        //        //& client_id=16614e08-7e7f-4d3e-8dd5-adeebb966bd2 & client_secret=YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur'
+        //});
+
+
     };
 
 

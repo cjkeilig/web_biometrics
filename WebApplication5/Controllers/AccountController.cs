@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -172,10 +173,16 @@ namespace WebApplication5.Controllers
                     // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
                     // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
 
-                    string response = await save_typing_pattern(model.Email, model.TypingPattern);
-                    //string response = await check_user(model.Email);
-                    Console.WriteLine(response);
+                    //string response = await save_typing_pattern(model.Email, model.TypingPattern);
 
+                    if (keystrokeDnaAccessToken == string.Empty || keystrokeDnaAccessToken == null)
+                        keystrokeDnaAccessToken = await get_keystroken_token();
+
+                    //string response = await check_user(model.Email);
+                    Console.WriteLine(keystrokeDnaAccessToken);
+
+                    var response = await save_keystroke_typing_pattern(model.Email, model.TypingPattern, Request.UserAgent);
+                    Console.WriteLine(response);
 
 
 
@@ -186,6 +193,59 @@ namespace WebApplication5.Controllers
 
             // If we got this far, something failed, redisplay form
             return View(model);
+        }
+
+        private async Task<string> save_keystroke_typing_pattern(string email, string typingPattern, string userAgent)
+        {
+            //const accessToken = response['access_token'];
+            //const  params  = {
+            //method: 'post',
+            //    url:  `https://api.keystrokedna.com/trusted/identify`,
+            //data:
+            //    {
+            //    grant_type: 'ksdna',
+            //        username: requestParams.email,
+            //        value: requestParams.email,
+            //        signature: requestParams.myKSDNAData.emailSignature,
+            //        user_agent: requestParams.getClientUserAgent()
+            //    },
+            //    headers:
+            //    {
+            //        'Content-Type':  'application/x-www-form-urlencoded',
+            //        'Authorization':  'Bearer ' + accessToken,
+            //    }
+            //};
+
+            //string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", keystrokeDnaApiKey, keystrokeDnaApiSecret)));
+            var baseAddress = new Uri(keyStrokeDnaBaseUrl);
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", keystrokeDnaAccessToken);
+                    var values = new List<KeyValuePair<string, string>>();
+                    values.Add(new KeyValuePair<string, string>("grant_type", "ksdna"));
+                    values.Add(new KeyValuePair<string, string>("username", email));
+                    values.Add(new KeyValuePair<string, string>("value", email));
+                    values.Add(new KeyValuePair<string, string>("user_agent", userAgent));
+
+                    //values.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
+                    var httpContent = new FormUrlEncodedContent(values);
+                    Console.WriteLine(string.Format(keyStrokeDnaBaseUrl, "oauth", "token"));
+                    using (var response = await httpClient.PostAsync(string.Format(keyStrokeDnaBaseUrl, "trusted", "identify"), httpContent))
+                    {
+                        var test = response.Content;
+                        string responseData = await response.Content.ReadAsStringAsync();
+                        return responseData;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                return null;
+            }
         }
 
         //
@@ -497,25 +557,59 @@ namespace WebApplication5.Controllers
             }
         }
 
-        private static string apiKey = "b6d601365d7de7f9ca4ffac21494b7fc"; // don't check this in
-        private static string apiSecret = "81c8b629a8a113519b9cb36558c50ebd"; // don't check this in
-        //private static string id = "{id}";
-        //private static string tp = "{tp}";
-        private static string base_url = "https://api.typingdna.com/{0}/{1}";
+        private static string typingDnaApiKey = "b6d601365d7de7f9ca4ffac21494b7fc"; // don't check this in
+        private static string typingDnaApiSecret = "81c8b629a8a113519b9cb36558c50ebd"; // don't check this in
+
+        private static string keystrokeDnaApiKey = "16614e08-7e7f-4d3e-8dd5-adeebb966bd2"; // don't check this in
+        private static string keystrokeDnaApiSecret = "YGuPM9PENXpJc3nNyoDa1VzRmCI2RPqd0R2qR9Ur";
+
+        private static string keystrokeDnaAccessToken;
+        private static string typingDnaBaseUrl = "https://api.typingdna.com/{0}/{1}";
+        private static string keyStrokeDnaBaseUrl = "https://api.keystrokedna.com/{0}/{1}";
+
         private static string contentType = "application/x-www-form-urlencoded";
 
         static async Task<string> check_user(string id)
         {
-            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", apiKey, apiSecret)));
-            var baseAddress = new Uri(base_url);
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiKey)));
+            var baseAddress = new Uri(typingDnaBaseUrl);
             try
             {
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
                     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authstring);
-                    using (var response = await httpClient.GetAsync(string.Format(base_url, "user", id)))
+                    using (var response = await httpClient.GetAsync(string.Format(typingDnaBaseUrl, "user", id)))
                     {
+                        string responseData = await response.Content.ReadAsStringAsync();
+                        return responseData;
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+                return null;
+            }
+        }
+
+        static async Task<string> get_keystroken_token()
+        {
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", keystrokeDnaApiKey, keystrokeDnaApiSecret)));
+            var baseAddress = new Uri(keyStrokeDnaBaseUrl);
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authstring);
+                    var values = new List<KeyValuePair<string, string>>();
+                    values.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
+                    var httpContent = new FormUrlEncodedContent(values);
+                    Console.WriteLine(string.Format(keyStrokeDnaBaseUrl, "oauth", "token"));
+                    using (var response = await httpClient.PostAsync(string.Format(keyStrokeDnaBaseUrl, "oauth", "token"), httpContent))
+                    {
+                        var test = response.Content;
                         string responseData = await response.Content.ReadAsStringAsync();
                         return responseData;
                     }
@@ -530,8 +624,8 @@ namespace WebApplication5.Controllers
 
         static async Task<string> save_typing_pattern(string id, string tp)
         {
-            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", apiKey, apiSecret)));
-            var baseAddress = new Uri(base_url);
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiKey)));
+            var baseAddress = new Uri(typingDnaBaseUrl);
             try
             {
                 using (var httpClient = new HttpClient())
@@ -543,7 +637,7 @@ namespace WebApplication5.Controllers
                             new System.Collections.Generic.KeyValuePair<string, string>("tp", tp)
                         }
                     );
-                    using (var response = await httpClient.PostAsync(string.Format(base_url, "save", id), data))
+                    using (var response = await httpClient.PostAsync(string.Format(typingDnaBaseUrl, "save", id), data))
                     {
                         string responseData = await response.Content.ReadAsStringAsync();
                         return responseData;
@@ -559,8 +653,8 @@ namespace WebApplication5.Controllers
 
         static async Task<string> verify_user(string id, string tp)
         {
-            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", apiKey, apiSecret)));
-            var baseAddress = new Uri(base_url);
+            string authstring = Convert.ToBase64String(Encoding.ASCII.GetBytes(string.Format("{0}:{1}", typingDnaApiKey, typingDnaApiKey)));
+            var baseAddress = new Uri(typingDnaBaseUrl);
             try
             {
                 using (var httpClient = new HttpClient())
@@ -573,7 +667,7 @@ namespace WebApplication5.Controllers
                             //new System.Collections.Generic.KeyValuePair<string, string>("quality", "2")
                         }
                     );
-                    using (var response = await httpClient.PostAsync(string.Format(base_url, "verify", id), data))
+                    using (var response = await httpClient.PostAsync(string.Format(typingDnaBaseUrl, "verify", id), data))
                     {
                         string responseData = await response.Content.ReadAsStringAsync();
                         return responseData;
